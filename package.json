@@ -1,0 +1,42 @@
+{
+  "name": "@coti-z/nestjs-sql-inspector",
+  "version": "0.0.2",
+  "private": false,
+  "description": "Auto-detect SQL performance issues in NestJS",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "nestjs",
+    "sql",
+    "postgresql",
+    "explain",
+    "performance",
+    "inspector"
+  ],
+  "author": "cothi",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/coti-z/nestjs-sql-inspector"
+  },
+  "peerDependencies": {
+    "@nestjs/common": ">=9.0.0",
+    "pg": ">=8.0.0"
+  },
+  "devDependencies": {
+    "@nestjs/common": "^10.0.0",
+    "@types/pg": "^8.0.0",
+    "pg": "^8.0.0",
+    "typescript": "^5.0.0"
+  }
+}

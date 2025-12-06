@@ -1,0 +1,20 @@
+# Source
+src/
+
+# Config
+tsconfig.json
+.gitignore
+.npmignore
+
+# IDE
+.idea/
+.vscode/
+
+# Test
+coverage/
+*.spec.ts
+*.test.ts
+
+# Misc
+*.tgz
+.DS_Store
