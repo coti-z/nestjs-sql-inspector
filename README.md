@@ -1,6 +1,6 @@
 # @coti-z/nestjs-sql-inspector
 
-Auto-detect SQL performance issues in NestJS applications with PostgreSQL.
+inspect query performance issues in NestJS applications.
 
 ## Installation
 
@@ -11,8 +11,8 @@ npm install @coti-z/nestjs-sql-inspector
 ## Usage
 
 ```typescript
-import { Module } from '@nestjs/common';
-import { QueryAnalyzerModule } from '@coti-z/nestjs-sql-inspector';
+import { Module } from "@nestjs/common";
+import { QueryAnalyzerModule } from "@coti-z/nestjs-sql-inspector";
 
 @Module({
   imports: [QueryAnalyzerModule],
@@ -22,9 +22,23 @@ export class AppModule {}
 
 ## Features
 
-- Automatic SQL query analysis using PostgreSQL EXPLAIN
-- Detects various scan types (Seq Scan, Index Scan, etc.)
+- Automatic query analysis using EXPLAIN
+- Detects slow queries and inefficient scan types
 - Logs query performance information
+
+## RoadMap
+
+- [ ] typeorm
+
+  - [x] PostgreSQL
+  - [ ] MySQL
+  - [ ] MongoDB
+
+- [ ] prisma
+
+  - [ ] PostgreSQL
+  - [ ] MySQL
+  - [ ] MongoDB
 
 ## Requirements
 
