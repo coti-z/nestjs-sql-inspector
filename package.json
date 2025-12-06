@@ -1,6 +1,6 @@
 {
   "name": "@coti-z/nestjs-sql-inspector",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "private": false,
   "description": "Auto-detect SQL performance issues in NestJS",
   "main": "dist/index.js",
