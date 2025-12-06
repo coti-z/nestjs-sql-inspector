@@ -12,13 +12,27 @@ npm install @coti-z/nestjs-sql-inspector
 
 ```typescript
 import { Module } from "@nestjs/common";
-import { QueryAnalyzerModule } from "@coti-z/nestjs-sql-inspector";
+import { SqlInspectorModule } from "@coti-z/nestjs-sql-inspector";
 
 @Module({
-  imports: [QueryAnalyzerModule],
+  imports: [
+    SqlInspectorModule.forRoot({
+      db: "postgres",
+      logLevel: "debug",
+      enabled: true,
+    }),
+  ],
 })
 export class AppModule {}
 ```
+
+## Options
+
+| Option     | Type                         | Default      | Description                  |
+| ---------- | ---------------------------- | ------------ | ---------------------------- |
+| `db`       | `"postgres"`                 | `"postgres"` | Database driver              |
+| `logLevel` | `"debug" \| "log" \| "warn"` | `"debug"`    | Log level for query analysis |
+| `enabled`  | `boolean`                    | `true`       | Enable/disable inspector     |
 
 ## Features
 
@@ -28,17 +42,14 @@ export class AppModule {}
 
 ## RoadMap
 
-- [ ] typeorm
+- database
 
   - [x] PostgreSQL
   - [ ] MySQL
   - [ ] MongoDB
 
-- [ ] prisma
-
-  - [ ] PostgreSQL
-  - [ ] MySQL
-  - [ ] MongoDB
+- option
+  - [ ] slowQueryThreshold
 
 ## Requirements
 

@@ -1,7 +1,17 @@
-import { Logger, Module, OnModuleInit } from "@nestjs/common";
+import { DynamicModule, Logger, Module, OnModuleInit } from "@nestjs/common";
 import { Client, QueryResult, QueryResultRow } from "pg";
 
-// PostgreSQL EXPLAIN 원본 타입 (스네이크 케이스 + 공백)
+export type DatabaseDriver = "postgres";
+
+export interface SqlInspectorOptions {
+  db?: DatabaseDriver;
+  logLevel?: "debug" | "log" | "warn";
+  enabled?: boolean;
+}
+
+const SQL_INSPECTOR_OPTIONS = "SQL_INSPECTOR_OPTIONS";
+
+// PostgreSQL EXPLAIN raw type (snake_case with spaces)
 interface RawExplainPlan {
   "Node Type": string;
   "Relation Name"?: string;
@@ -24,7 +34,7 @@ interface ExplainRow {
   "QUERY PLAN": RawExplainResult[] | string;
 }
 
-// camelCase로 변환된 타입
+// Transformed to camelCase
 interface ExplainPlan {
   nodeType: string;
   relationName?: string;
@@ -39,7 +49,7 @@ interface ExplainPlan {
   plans?: ExplainPlan[];
 }
 
-// RawExplainPlan을 ExplainPlan으로 변환
+// Transform RawExplainPlan to ExplainPlan
 function transformPlan(raw: RawExplainPlan): ExplainPlan {
   const result: ExplainPlan = {
     nodeType: raw["Node Type"],
@@ -61,7 +71,7 @@ function transformPlan(raw: RawExplainPlan): ExplainPlan {
   return result;
 }
 
-// pg query 인자 타입
+// pg query argument type
 interface QueryConfigArg {
   text: string;
   values?: unknown[];
@@ -69,19 +79,19 @@ interface QueryConfigArg {
 
 type QueryArgs = [string, unknown[]?] | [QueryConfigArg];
 
-// pg query 함수 시그니처
+// pg query function signature
 type BoundQueryFn = (
   this: Client,
   sql: string,
   values?: unknown[]
 ) => Promise<QueryResult<QueryResultRow>>;
 
-// 패치 대상 prototype 타입
+// Patchable prototype type
 interface PatchablePrototype {
   query: BoundQueryFn;
 }
 
-// 스캔 타입 목록
+// Scan type list
 const SCAN_TYPES = [
   "Seq Scan",
   "Index Scan",
@@ -98,7 +108,7 @@ function isScanNode(nodeType: string): nodeType is ScanType {
   return SCAN_TYPES.includes(nodeType as ScanType);
 }
 
-// Plan 트리에서 모든 Scan 노드를 재귀적으로 찾기
+// Recursively find all Scan nodes in Plan tree
 function findScanNodes(
   plan: ExplainPlan,
   results: ExplainPlan[] = []
@@ -115,22 +125,57 @@ function findScanNodes(
 }
 
 @Module({})
-export class QueryAnalyzerModule implements OnModuleInit {
-  private readonly logger = new Logger(QueryAnalyzerModule.name);
+export class SqlInspectorModule implements OnModuleInit {
+  private readonly logger = new Logger(SqlInspectorModule.name);
+  private static options: SqlInspectorOptions = {};
 
-  onModuleInit(): void {
-    // TypeORM은 Client를 직접 사용하므로 Client만 패치
-    this.patchQuery(
-      Client.prototype as unknown as PatchablePrototype,
-      this.logger
-    );
-    this.logger.log("QueryAnalyzer 활성화됨");
+  static forRoot(options: SqlInspectorOptions = {}): DynamicModule {
+    SqlInspectorModule.options = options;
+    return {
+      module: SqlInspectorModule,
+      providers: [
+        {
+          provide: SQL_INSPECTOR_OPTIONS,
+          useValue: options,
+        },
+      ],
+      exports: [SQL_INSPECTOR_OPTIONS],
+    };
   }
 
-  private patchQuery(prototype: PatchablePrototype, logger: Logger): void {
+  onModuleInit(): void {
+    const options = SqlInspectorModule.options;
+    const { db = "postgres", enabled } = options;
+
+    if (enabled === false) {
+      this.logger.log("SqlInspector disabled");
+      return;
+    }
+
+    if (db !== "postgres") {
+      this.logger.warn(`${db} is not supported yet`);
+      return;
+    }
+
+    // TypeORM uses Client directly, so only patch Client
+    this.patchQuery(
+      Client.prototype as unknown as PatchablePrototype,
+      this.logger,
+      options
+    );
+    this.logger.log("SqlInspector enabled (postgres)");
+  }
+
+  private patchQuery(
+    prototype: PatchablePrototype,
+    logger: Logger,
+    options: SqlInspectorOptions = {}
+  ): void {
     const originalQueryFn: BoundQueryFn = prototype.query;
 
-    // 타입 안전한 래퍼 함수
+    const logLevel = options.logLevel ?? "debug";
+
+    // Type-safe wrapper function
     const executeQuery = <T extends QueryResultRow = QueryResultRow>(
       context: Client,
       sql: string,
@@ -167,8 +212,9 @@ export class QueryAnalyzerModule implements OnModuleInit {
           const firstRow = explain.rows[0];
           if (!firstRow) return executeQuery(this, sql, values);
 
-          let rawQueryPlan: RawExplainResult[] | string = firstRow["QUERY PLAN"];
-          // pg가 JSON을 문자열로 반환하는 경우 파싱
+          let rawQueryPlan: RawExplainResult[] | string =
+            firstRow["QUERY PLAN"];
+          // Parse if pg returns JSON as string
           if (typeof rawQueryPlan === "string") {
             rawQueryPlan = JSON.parse(rawQueryPlan) as RawExplainResult[];
           }
@@ -179,23 +225,23 @@ export class QueryAnalyzerModule implements OnModuleInit {
 
             for (const scan of scanNodes) {
               const message = [
-                `${scan.nodeType} 감지`,
-                `  테이블: ${scan.relationName}`,
-                `  인덱스: ${scan.indexName ?? "없음"}`,
-                `  예상 rows: ${scan.planRows}`,
-                `  예상 cost: ${scan.totalCost}`,
-                `  쿼리: ${sql.substring(0, 100)}`,
+                `${scan.nodeType} detected`,
+                `  table: ${scan.relationName}`,
+                `  index: ${scan.indexName ?? "none"}`,
+                `  estimated rows: ${scan.planRows}`,
+                `  estimated cost: ${scan.totalCost}`,
+                `  query: ${sql.substring(0, 100)}`,
               ].join("\n");
 
-              logger.debug(message);
+              logger[logLevel](message);
             }
           }
         } catch {
-          // EXPLAIN 실패 시 SAVEPOINT로 롤백
+          // Rollback to savepoint if EXPLAIN fails
           try {
             await executeQuery(this, `ROLLBACK TO SAVEPOINT ${savepointName}`);
           } catch {
-            // 롤백도 실패하면 무시 (트랜잭션 밖에서 실행된 경우)
+            // Ignore if rollback fails (executed outside transaction)
           }
         }
       }
