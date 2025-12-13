@@ -1,4 +1,4 @@
-import { ExplainPlan, SCAN_TYPES, ScanType } from "../type";
+import { ExplainPlan, SCAN_TYPES, ScanType } from "../type/common.type";
 
 export function isScanNode(nodeType: string): nodeType is ScanType {
   return SCAN_TYPES.includes(nodeType as ScanType);

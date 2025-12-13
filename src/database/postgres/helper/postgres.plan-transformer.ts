@@ -1,4 +1,5 @@
-import { ExplainPlan, RawExplainPlan } from "../type";
+import { ExplainPlan } from "../../../common/type/common.type";
+import { RawExplainPlan } from "../postgres.type";
 
 export function transformPlan(raw: RawExplainPlan): ExplainPlan {
   const result: ExplainPlan = {

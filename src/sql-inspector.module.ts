@@ -1,54 +1,25 @@
-import {
-  DynamicModule,
-  Inject,
-  Logger,
-  Module,
-  OnModuleInit,
-} from "@nestjs/common";
-import { Client } from "pg";
-import { patchPostgresQuery } from "./patch/postgres-patcher";
-import { PatchablePrototype, SqlInspectorOptions } from "./type";
+import { DynamicModule, Module } from "@nestjs/common";
+import { CommonModule } from "./common/common.module";
+import { SqlInspectorService } from "./common/service/sql-inspector.service";
+import { SqlInspectorOptions } from "./common/type/common.type";
+import { PostgresModule } from "./database/postgres/postgres.module";
 
 export const SQL_INSPECTOR_OPTIONS = "SQL_INSPECTOR_OPTIONS";
 
 @Module({})
-export class SqlInspectorModule implements OnModuleInit {
-  private readonly logger = new Logger(SqlInspectorModule.name);
-
-  constructor(
-    @Inject(SQL_INSPECTOR_OPTIONS)
-    private readonly options: SqlInspectorOptions
-  ) {}
-
+export class SqlInspectorModule {
   static forRoot(options: SqlInspectorOptions = {}): DynamicModule {
     return {
       module: SqlInspectorModule,
+      imports: [CommonModule, PostgresModule],
       providers: [
         {
           provide: SQL_INSPECTOR_OPTIONS,
           useValue: options,
         },
+        SqlInspectorService,
       ],
-      exports: [SQL_INSPECTOR_OPTIONS],
+      exports: [SQL_INSPECTOR_OPTIONS, SqlInspectorService],
     };
-  }
-
-  onModuleInit(): void {
-    const { db = "postgres", enabled } = this.options;
-
-    if (enabled === false) {
-      return;
-    }
-
-    if (db !== "postgres") {
-      return;
-    }
-
-    patchPostgresQuery(
-      Client.prototype as unknown as PatchablePrototype,
-      this.logger,
-      this.options
-    );
-    this.logger.log("SqlInspector enabled (postgres)");
   }
 }
