@@ -1,18 +1,20 @@
-import { QueryArgs } from "../postgres.type";
+import { QueryCallback, QueryConfigArg } from "../postgres.type";
 
 export interface ParsedQuery {
   sql: string;
   values?: unknown[];
 }
 
-export function parseQueryArgs(args: QueryArgs): ParsedQuery {
-  const firstArg = args[0];
-
-  if (typeof firstArg === "string") {
-    return { sql: firstArg, values: args[1] };
+export function parseQuery(
+  sqlOrConfig: string | QueryConfigArg,
+  valuesOrCallback?: unknown[] | QueryCallback
+): ParsedQuery {
+  if (typeof sqlOrConfig === "string") {
+    const values = Array.isArray(valuesOrCallback) ? valuesOrCallback : undefined;
+    return { sql: sqlOrConfig, values };
   }
 
-  return { sql: firstArg.text, values: firstArg.values };
+  return { sql: sqlOrConfig.text, values: sqlOrConfig.values };
 }
 
 export function isSelectQuery(sql: string): boolean {

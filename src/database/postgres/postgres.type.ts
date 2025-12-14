@@ -29,7 +29,10 @@ export interface QueryConfigArg {
   values?: unknown[];
 }
 
-export type QueryArgs = [string, unknown[]?] | [QueryConfigArg];
+export type QueryCallback = (
+  err: Error,
+  result: QueryResult<QueryResultRow>
+) => void;
 
 // pg query function signature
 export type BoundQueryFn = (

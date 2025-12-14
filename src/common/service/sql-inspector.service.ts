@@ -9,10 +9,10 @@ export class SqlInspectorService implements OnModuleInit {
   private readonly logger = new Logger(SqlInspectorService.name);
 
   constructor(
-    private readonly registry: AdapterRegistry,
-    private readonly logReporter: LogReporter,
     @Inject(SQL_INSPECTOR_OPTIONS)
-    private readonly options: SqlInspectorOptions
+    private readonly options: SqlInspectorOptions,
+    private readonly registry: AdapterRegistry,
+    private readonly logReporter: LogReporter
   ) {}
 
   onModuleInit(): void {
@@ -32,8 +32,9 @@ export class SqlInspectorService implements OnModuleInit {
       return;
     }
 
-    this.logReporter.setLogLevel(logLevel);
     adapter.patch(this.options);
+
+    this.logReporter.setLogLevel(logLevel);
     this.logger.log(`SqlInspector enabled (${adapter.name})`);
   }
 }

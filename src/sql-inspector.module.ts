@@ -19,7 +19,6 @@ export class SqlInspectorModule {
         },
         SqlInspectorService,
       ],
-      exports: [SQL_INSPECTOR_OPTIONS, SqlInspectorService],
     };
   }
 }
